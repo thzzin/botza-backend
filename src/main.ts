@@ -2,74 +2,25 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
 import * as https from 'https';
-import * as http from 'http';
 import * as fs from 'fs';
 
-// Caminhos para os certificados SSL gerados pelo Let's Encrypt
-const privateKey = fs.readFileSync(
-  '/etc/letsencrypt/live/getluvia.com.br/privkey.pem',
-  'utf8',
-);
-const certificate = fs.readFileSync(
-  '/etc/letsencrypt/live/getluvia.com.br/cert.pem',
-  'utf8',
-);
-const ca = fs.readFileSync(
-  '/etc/letsencrypt/live/getluvia.com.br/chain.pem',
-  'utf8',
-);
-
-// Configuração das opções HTTPS
-const httpsOptions = {
-  key: privateKey,
-  cert: certificate,
-  ca: ca,
-};
 
 async function bootstrap() {
-  // Criação da aplicação Nest.js
+  
   const app = await NestFactory.create(AppModule);
 
-  // Habilita CORS (opcional)
+  // Habilita o CORS (caso queira permitir acesso de outros domínios)
   app.enableCors({
-    origin: '*', // Altere para um domínio específico em produção
+    origin: '*', // ou restrinja para um domínio específico
     methods: 'GET,POST,PUT,DELETE',
     allowedHeaders: 'Content-Type,Authorization',
   });
 
-  // Configura body-parser para aceitar payloads maiores
+  // Configura o body parser para aceitar requisições maiores
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
-  // Porta HTTPS
-  const HTTPS_PORT = process.env.HTTPS_PORT || 3010;
-
-  // Criação do servidor HTTPS
-  const httpsServer = https.createServer(
-    httpsOptions,
-    app.getHttpAdapter().getInstance(),
-  );
-
-  httpsServer.listen(HTTPS_PORT, () => {
-    console.log(`HTTPS Server running on port ${HTTPS_PORT}`);
-  });
-
-  // Porta HTTP para redirecionamento
-  const HTTP_PORT = process.env.HTTP_PORT || 3080;
-
-  // Criação do servidor HTTP que redireciona para HTTPS
-  http
-    .createServer((req, res) => {
-      const redirectUrl = `https://${req.headers.host?.replace(
-        `:${HTTP_PORT}`,
-        `:${HTTPS_PORT}`,
-      )}${req.url}`;
-      res.writeHead(301, { Location: redirectUrl });
-      res.end();
-    })
-    .listen(HTTP_PORT, () => {
-      console.log(`HTTP Server running on port ${HTTP_PORT} (redirecting to HTTPS)`);
-    });
+  // Inicia o servidor na porta configurada (padrão 3005)
+  await app.listen(process.env.PORT ?? 3010);
 }
-
 bootstrap();
