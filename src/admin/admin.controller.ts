@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Request } f
 import { AdminService } from './admin.service';
 import { CreateAdminDto } from './dto/create-admin.dto';
 import { Admin } from './admin.entity';
-import { CreateEmployeeDto } from './dto/CreateEmployeeDto.dto';
+import { CreateEmployeeDto } from './dto/createEmployeeDto.dto';
 import { AuthGuard } from '@nestjs/passport';
 
 @Controller('admins')

@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Admin } from './admin.entity';
 import { ConflictException } from '@nestjs/common';  // Importar ConflictException
 import * as bcrypt from 'bcrypt';
-import { CreateEmployeeDto } from './dto/CreateEmployeeDto.dto';
+import { CreateEmployeeDto } from './dto/createEmployeeDto.dto';
 
 @Injectable()
 export class AdminService {
