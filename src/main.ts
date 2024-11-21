@@ -17,6 +17,6 @@ async function bootstrap() {
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   // Inicia o servidor na porta configurada (padrão 3005)
-  await app.listen(process.env.PORT ?? 3005);
+  await app.listen(process.env.PORT ?? 3010);
 }
 bootstrap();
