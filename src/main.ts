@@ -41,23 +41,30 @@ async function bootstrap() {
   app.use(bodyParser.json({ limit: '50mb' }));
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
+  // Porta HTTPS
+  const HTTPS_PORT = process.env.HTTPS_PORT || 3010;
+
   // Criação do servidor HTTPS
   const httpsServer = https.createServer(
     httpsOptions,
     app.getHttpAdapter().getInstance(),
   );
 
-  // Porta do servidor HTTPS
-  const HTTPS_PORT = process.env.PORT || 443;
   httpsServer.listen(HTTPS_PORT, () => {
     console.log(`HTTPS Server running on port ${HTTPS_PORT}`);
   });
 
-  // Criação do servidor HTTP para redirecionar para HTTPS
-  const HTTP_PORT = 80;
+  // Porta HTTP para redirecionamento
+  const HTTP_PORT = process.env.HTTP_PORT || 3080;
+
+  // Criação do servidor HTTP que redireciona para HTTPS
   http
     .createServer((req, res) => {
-      res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+      const redirectUrl = `https://${req.headers.host?.replace(
+        `:${HTTP_PORT}`,
+        `:${HTTPS_PORT}`,
+      )}${req.url}`;
+      res.writeHead(301, { Location: redirectUrl });
       res.end();
     })
     .listen(HTTP_PORT, () => {
