@@ -42,7 +42,7 @@ async function bootstrap() {
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   // Porta HTTPS
-  const HTTPS_PORT = process.env.HTTPS_PORT || 3010;
+  const HTTPS_PORT = process.env.HTTPS_PORT || 3005;
 
   // Criação do servidor HTTPS
   const httpsServer = https.createServer(
