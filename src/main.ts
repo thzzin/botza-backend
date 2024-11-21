@@ -53,23 +53,6 @@ async function bootstrap() {
   httpsServer.listen(HTTPS_PORT, () => {
     console.log(`HTTPS Server running on port ${HTTPS_PORT}`);
   });
-
-  // Porta HTTP para redirecionamento
-  const HTTP_PORT = process.env.HTTP_PORT || 3080;
-
-  // Criação do servidor HTTP que redireciona para HTTPS
-  http
-    .createServer((req, res) => {
-      const redirectUrl = `https://${req.headers.host?.replace(
-        `:${HTTP_PORT}`,
-        `:${HTTPS_PORT}`,
-      )}${req.url}`;
-      res.writeHead(301, { Location: redirectUrl });
-      res.end();
-    })
-    .listen(HTTP_PORT, () => {
-      console.log(`HTTP Server running on port ${HTTP_PORT} (redirecting to HTTPS)`);
-    });
 }
 
 bootstrap();
