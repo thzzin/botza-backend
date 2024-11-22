@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Logger, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Logger, BadRequestException, Get, Query, Res } from '@nestjs/common';
 import { AdminService } from 'src/admin/admin.service';
 import { ContactService } from 'src/contact/contact.service';
 import { ConversationService } from 'src/conversation/conversation.service';
@@ -12,8 +12,30 @@ export class WebhookController {
     private readonly contactService: ContactService,
     private readonly conversationService: ConversationService,
     private readonly messageService: MessageService,
-    private readonly adminService: AdminService
+    private readonly adminService: AdminService,
+    private readonly verifyToken = 'EAAMaEvMlYFYBOzM0Ga4ef907rL4NXA6IwM8z5uc7ZAs3lJZBfd2wrxk9j3F5ldTE7duE7eZCpRCyGiFWYTPsqz9W7az2gAyujlhyKrMd5ocyWAxWm6sIZAlv26YWHSmlbycmbZAg86tYvDjkZAPIUdteBBWhHmzL6jyeQCKhddcw9xJIqgp0SlmxnYwESponYZCy0nxKuPlCnczOKZAwPTBquV3hYE0ZD';
   ) {}
+
+   @Get()
+  verifyWebhook(
+    @Query('hub.mode') mode: string,
+    @Query('hub.verify_token') token: string,
+    @Query('hub.challenge') challenge: string,
+    @Res() res: Response,
+  ) {
+    this.logger.log('Recebendo requisição para verificar webhook.');
+
+    // Verifica se o token e o modo estão corretos
+    if (mode === 'subscribe' && token === this.verifyToken) {
+      this.logger.log('Webhook verificado com sucesso!');
+      // Retorna o desafio como esperado pela API do WhatsApp
+      return challenge
+    } else {
+      this.logger.error('Falha na verificação do webhook.');
+      // Retorna erro 403 (não autorizado)
+      return ('Falha na verificação do webhook.');
+    }
+  }
 
   @Post()
   async postMsg(@Body() incomingData: any): Promise<any> {
