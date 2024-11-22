@@ -16,26 +16,25 @@ export class WebhookController {
     private readonly adminService: AdminService,
   ) {}
 
-   @Get()
-  verifyWebhook(
-    @Query('hub.mode') mode: string,
-    @Query('hub.verify_token') token: string,
-    @Query('hub.challenge') challenge: string,
-    @Res() res: Response,
-  ) {
-    this.logger.log('Recebendo requisição para verificar webhook.');
+  @Get()
+verifyWebhook(
+  @Query('hub.mode') mode: string,
+  @Query('hub.verify_token') token: string,
+  @Query('hub.challenge') challenge: string,
+  @Res() res: Response,
+) {
+  this.logger.log('Recebendo requisição para verificar webhook.');
+  this.logger.debug(`Mode: ${mode}, Token: ${token}, Challenge: ${challenge}`);
 
-    // Verifica se o token e o modo estão corretos
-    if (mode === 'subscribe' && token === this.verifyToken) {
-      this.logger.log('Webhook verificado com sucesso!');
-      // Retorna o desafio como esperado pela API do WhatsApp
-      return challenge
-    } else {
-      this.logger.error('Falha na verificação do webhook.');
-      // Retorna erro 403 (não autorizado)
-      return ('Falha na verificação do webhook.');
-    }
+  if (mode === 'subscribe' && token === this.verifyToken) {
+    this.logger.log('Webhook verificado com sucesso!');
+    return res.status(200).send(challenge); // Envia o desafio como resposta HTTP 200
+  } else {
+    this.logger.error('Falha na verificação do webhook.');
+    return res.status(403).send('Falha na verificação do webhook.'); // Envia erro 403
   }
+}
+
 
   @Post()
   async postMsg(@Body() incomingData: any): Promise<any> {
