@@ -4,11 +4,25 @@ import { ContactService } from 'src/contact/contact.service';
 import { ConversationService } from 'src/conversation/conversation.service';
 import { MessageService } from 'src/message/message.service';
 import { Response } from 'express';
+//import * as Redis from 'ioredis';
+import * as fs from 'fs';
+
+const processedMessagesFile = 'processedMessages.json';
+
+let processedMessages: Set<string> = new Set();
+
+// Carregar os IDs processados ao iniciar o servidor
+if (fs.existsSync(processedMessagesFile)) {
+  const data = fs.readFileSync(processedMessagesFile, 'utf-8');
+  processedMessages = new Set(JSON.parse(data));
+}
 
 @Controller('webhook')
 export class WebhookController {
   private readonly logger = new Logger(WebhookController.name);
     private readonly verifyToken = 'EAAMaEvMlYFYBOzM0Ga4ef907rL4NXA6IwM8z5uc7ZAs3lJZBfd2wrxk9j3F5ldTE7duE7eZCpRCyGiFWYTPsqz9W7az2gAyujlhyKrMd5ocyWAxWm6sIZAlv26YWHSmlbycmbZAg86tYvDjkZAPIUdteBBWhHmzL6jyeQCKhddcw9xJIqgp0SlmxnYwESponYZCy0nxKuPlCnczOKZAwPTBquV3hYE0ZD'
+
+  //private readonly redisClient = new Redis(); // Inicialize o cliente Redis
 
   constructor(
     private readonly contactService: ContactService,
@@ -16,6 +30,7 @@ export class WebhookController {
     private readonly messageService: MessageService,
     private readonly adminService: AdminService,
   ) {}
+  
 
   @Get()
 verifyWebhook(
@@ -37,43 +52,52 @@ verifyWebhook(
 }
 
 
-  @Post()
-  async postMsg(@Body() incomingData: any): Promise<any> {
+   async postMsg(@Body() incomingData: any): Promise<any> {
     try {
-          this.logger.debug('Recebendo dados do webhook:', incomingData);
+      this.logger.debug('Recebendo dados do webhook:', incomingData);
 
-          if (incomingData.field !== 'messages' || !incomingData.value) {
-      throw new BadRequestException('Estrutura de dados inválida: campo ou valor ausente.');
-    }
-
-    const data = incomingData.value;
-      // Verificar se incomingData contém dados
-      if (data.contacts?.length > 0 && data.messages?.length > 0) {
-      const contact = data.contacts[0];
-      const message = data.messages[0];
-
-      // Extrair os dados necessários
-      const nameContact = contact.profile?.name || 'Nome não informado'; // Nome do receptor
-      const phoneNumberReceptor = data.metadata?.display_phone_number; // Número do destinatário
-      const phoneSender = message.from; // Número do remetente
-
-      // Determinar o tipo de mensagem e processá-la
-      const tipo = message.type;
-
-      switch (tipo) {
-        case 'text':
-          return await this.processText(message, phoneNumberReceptor, nameContact, phoneSender); // Processar mensagem de texto
-        case 'image':
-          return await this.processImage(message); // Processar imagem
-        case 'audio':
-          return await this.processAudio(message); // Processar áudio
-        default:
-          throw new BadRequestException(`Tipo de mensagem ${tipo} não suportado.`);
+      if (incomingData.field !== 'messages' || !incomingData.value) {
+        throw new BadRequestException('Estrutura de dados inválida: campo ou valor ausente.');
       }
-    } else {
-      throw new BadRequestException('Estrutura de dados inválida: "contacts" ou "messages" não encontrado.');
-    }
 
+      const data = incomingData.value;
+
+      if (data.contacts?.length > 0 && data.messages?.length > 0) {
+        const message = data.messages[0];
+
+        // Verifique se a mensagem já foi processada
+        const messageId = message.id;
+
+        if (processedMessages.has(messageId)) {
+                    this.logger.warn(`Mensagem duplicada ignorada: ${messageId}`);
+
+          return { message: 'Mensagem já processada.' }; // Resposta para mensagens duplicadas
+  }
+
+        // Adicione a mensagem ao conjunto de mensagens processadas
+  processedMessages.add(messageId);
+          // Opcional: Definir um TTL (tempo de vida) para evitar crescimento infinito do conjunto
+  fs.writeFileSync(processedMessagesFile, JSON.stringify([...processedMessages]));
+
+        const contact = data.contacts[0];
+        const nameContact = contact.profile?.name || 'Nome não informado'; // Nome do receptor
+        const phoneNumberReceptor = data.metadata?.display_phone_number; // Número do destinatário
+        const phoneSender = message.from; // Número do remetente
+        const tipo = message.type;
+
+        switch (tipo) {
+          case 'text':
+            return await this.processText(message, phoneNumberReceptor, nameContact, phoneSender);
+          case 'image':
+            return await this.processImage(message);
+          case 'audio':
+            return await this.processAudio(message);
+          default:
+            throw new BadRequestException(`Tipo de mensagem ${tipo} não suportado.`);
+        }
+      } else {
+        throw new BadRequestException('Estrutura de dados inválida: "contacts" ou "messages" não encontrado.');
+      }
     } catch (err) {
       this.logger.error('Erro ao processar a mensagem:', err);
       throw new BadRequestException('Erro no servidor');
