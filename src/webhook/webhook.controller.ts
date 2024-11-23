@@ -51,7 +51,7 @@ verifyWebhook(
   }
 }
 
-
+@Post()
    async postMsg(@Body() incomingData: any): Promise<any> {
     try {
       this.logger.debug('Recebendo dados do webhook:', incomingData);
