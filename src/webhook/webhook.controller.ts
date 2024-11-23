@@ -40,39 +40,40 @@ verifyWebhook(
   @Post()
   async postMsg(@Body() incomingData: any): Promise<any> {
     try {
+          this.logger.debug('Recebendo dados do webhook:', incomingData);
+
+          if (incomingData.field !== 'messages' || !incomingData.value) {
+      throw new BadRequestException('Estrutura de dados inválida: campo ou valor ausente.');
+    }
+
+    const data = incomingData.value;
       // Verificar se incomingData contém dados
-      if (Array.isArray(incomingData) && incomingData.length > 0) {
-        const data = incomingData[0];
+      if (data.contacts?.length > 0 && data.messages?.length > 0) {
+      const contact = data.contacts[0];
+      const message = data.messages[0];
 
-        // Verificar se há `contacts` e `messages` com dados válidos
-        if (data.contacts && data.contacts.length > 0 && data.messages && data.messages.length > 0) {
-          const contact = data.contacts[0];
-          const message = data.messages[0];
+      // Extrair os dados necessários
+      const nameContact = contact.profile?.name || 'Nome não informado'; // Nome do receptor
+      const phoneNumberReceptor = data.metadata?.display_phone_number; // Número do destinatário
+      const phoneSender = message.from; // Número do remetente
 
-          // Extrair os dados necessários
-          const nameContact = contact.profile?.name || "Nome não informado"; // Nome do receptor
-          const phoneNumberReceptor = data.metadata?.display_phone_number; // Número do destinatário
-          const phoneSender = message.from; // Número do remetente
+      // Determinar o tipo de mensagem e processá-la
+      const tipo = message.type;
 
-          // Determinar o tipo de mensagem e processá-la
-          const tipo = message.type;
-
-          switch (tipo) {
-            case 'text':
-              return await this.processText(message, phoneNumberReceptor, nameContact, phoneSender); // Processar mensagem de texto
-            case 'image':
-              return await this.processImage(message); // Processar imagem
-            case 'audio':
-              return await this.processAudio(message); // Processar áudio
-            default:
-              throw new BadRequestException(`Tipo de mensagem ${tipo} não suportado.`);
-          }
-        } else {
-          throw new BadRequestException('Estrutura de dados inválida: "contacts" ou "messages" não encontrado');
-        }
-      } else {
-        throw new BadRequestException('Estrutura de dados inválida: array esperado');
+      switch (tipo) {
+        case 'text':
+          return await this.processText(message, phoneNumberReceptor, nameContact, phoneSender); // Processar mensagem de texto
+        case 'image':
+          return await this.processImage(message); // Processar imagem
+        case 'audio':
+          return await this.processAudio(message); // Processar áudio
+        default:
+          throw new BadRequestException(`Tipo de mensagem ${tipo} não suportado.`);
       }
+    } else {
+      throw new BadRequestException('Estrutura de dados inválida: "contacts" ou "messages" não encontrado.');
+    }
+
     } catch (err) {
       this.logger.error('Erro ao processar a mensagem:', err);
       throw new BadRequestException('Erro no servidor');
