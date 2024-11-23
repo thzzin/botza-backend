@@ -27,6 +27,7 @@ import { Whatsapp } from './whatsapp/whatsapp.entity';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { OpenAiModule } from './openaibot/openaibot.module';
 
 
 @Module({
@@ -42,7 +43,7 @@ import { join } from 'path';
       useFactory: async (configService: ConfigService) => ({
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),  // Usando a variável DATABASE_URL
-        entities: [Admin, ContactList, Contact, Template, Conversation, Message, Whatsapp],  // Suas entidades
+        entities: [Admin, ContactList, Contact, Template, Conversation, Message, Whatsapp, OpenAiModule],  // Suas entidades
         synchronize: true,  // Defina como false em produção
         ssl: { rejectUnauthorized: false },  // Adicionando configuração SSL (caso necessário)
       }),
@@ -56,6 +57,7 @@ import { join } from 'path';
     AuthModule,
     WebhookModule,
     WhatsappModule,
+    OpenAiModule,
   ],
   controllers: [AppController, WebhookController, WhatsappController],
   providers: [AppService, DatabaseService, WhatsappService ],

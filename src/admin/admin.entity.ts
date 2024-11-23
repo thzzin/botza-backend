@@ -13,6 +13,9 @@ export class Admin {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+   @Column({ type: 'varchar', length: 255, nullable: true })
+  namebot: string;
+
   @Column({ type: 'varchar', length: 255, nullable: true })
   phones: string;
 

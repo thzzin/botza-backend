@@ -6,7 +6,7 @@ import * as fs from 'fs';
 
 async function bootstrap() {
   // Caminhos para os certificados SSL
-  const privateKey = fs.readFileSync(
+/*   const privateKey = fs.readFileSync(
     '/etc/letsencrypt/live/getluvia.com.br/privkey.pem',
     'utf8',
   );
@@ -24,11 +24,11 @@ async function bootstrap() {
     key: privateKey,
     cert: certificate,
     ca: ca,
-  };
+  }; */
 
   // Criação do aplicativo NestJS com HTTPS
   const app = await NestFactory.create(AppModule, {
-    httpsOptions,  // Configuração HTTPS
+    //httpsOptions,  // Configuração HTTPS
   });
 
   // Habilita o CORS
