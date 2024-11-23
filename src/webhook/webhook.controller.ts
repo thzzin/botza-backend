@@ -52,57 +52,66 @@ verifyWebhook(
 }
 
 @Post()
-   async postMsg(@Body() incomingData: any): Promise<any> {
-    try {
-      this.logger.debug('Recebendo dados do webhook:', incomingData);
+async postMsg(@Body() incomingData: any): Promise<any> {
+  try {
+    this.logger.debug('Recebendo dados do webhook:', incomingData);
 
-      if (incomingData.field !== 'messages' || !incomingData.value) {
-        throw new BadRequestException('Estrutura de dados inválida: campo ou valor ausente.');
-      }
-
-      const data = incomingData.value;
-
-      if (data.contacts?.length > 0 && data.messages?.length > 0) {
-        const message = data.messages[0];
-
-        // Verifique se a mensagem já foi processada
-        const messageId = message.id;
-
-        if (processedMessages.has(messageId)) {
-                    this.logger.warn(`Mensagem duplicada ignorada: ${messageId}`);
-
-          return { message: 'Mensagem já processada.' }; // Resposta para mensagens duplicadas
-  }
-
-        // Adicione a mensagem ao conjunto de mensagens processadas
-  processedMessages.add(messageId);
-          // Opcional: Definir um TTL (tempo de vida) para evitar crescimento infinito do conjunto
-  fs.writeFileSync(processedMessagesFile, JSON.stringify([...processedMessages]));
-
-        const contact = data.contacts[0];
-        const nameContact = contact.profile?.name || 'Nome não informado'; // Nome do receptor
-        const phoneNumberReceptor = data.metadata?.display_phone_number; // Número do destinatário
-        const phoneSender = message.from; // Número do remetente
-        const tipo = message.type;
-
-        switch (tipo) {
-          case 'text':
-            return await this.processText(message, phoneNumberReceptor, nameContact, phoneSender);
-          case 'image':
-            return await this.processImage(message);
-          case 'audio':
-            return await this.processAudio(message);
-          default:
-            throw new BadRequestException(`Tipo de mensagem ${tipo} não suportado.`);
-        }
-      } else {
-        throw new BadRequestException('Estrutura de dados inválida: "contacts" ou "messages" não encontrado.');
-      }
-    } catch (err) {
-      this.logger.error('Erro ao processar a mensagem:', err);
-      throw new BadRequestException('Erro no servidor');
+    // Verificar se "entry" existe e possui pelo menos um item
+    if (!incomingData?.entry?.[0]?.changes?.[0]?.value) {
+      throw new BadRequestException('Estrutura de dados inválida: dados ausentes.');
     }
+
+    const entry = incomingData.entry[0];
+    const change = entry.changes[0];
+    const data = change.value;
+
+    // Validar o campo "field"
+    if (change.field !== 'messages') {
+      throw new BadRequestException('Estrutura de dados inválida: campo "field" ausente ou incorreto.');
+    }
+
+    // Validar se "contacts" e "messages" estão presentes
+    if (!data.contacts || !data.messages || data.contacts.length === 0 || data.messages.length === 0) {
+      throw new BadRequestException('Estrutura de dados inválida: "contacts" ou "messages" não encontrado.');
+    }
+
+    const contact = data.contacts[0];
+    const message = data.messages[0];
+
+    // Verificar se a mensagem já foi processada
+    const messageId = message.id;
+
+    if (processedMessages.has(messageId)) {
+      this.logger.warn(`Mensagem duplicada ignorada: ${messageId}`);
+      return { message: 'Mensagem já processada.' };
+    }
+
+    // Adicionar a mensagem ao conjunto de mensagens processadas
+    processedMessages.add(messageId);
+    fs.writeFileSync(processedMessagesFile, JSON.stringify([...processedMessages]));
+
+    // Dados da mensagem
+    const nameContact = contact.profile?.name || 'Nome não informado';
+    const phoneNumberReceptor = data.metadata?.display_phone_number;
+    const phoneSender = message.from;
+    const tipo = message.type;
+
+    switch (tipo) {
+      case 'text':
+        return await this.processText(message, phoneNumberReceptor, nameContact, phoneSender);
+      case 'image':
+        return await this.processImage(message);
+      case 'audio':
+        return await this.processAudio(message);
+      default:
+        throw new BadRequestException(`Tipo de mensagem ${tipo} não suportado.`);
+    }
+  } catch (err) {
+    this.logger.error('Erro ao processar a mensagem:', err);
+    throw new BadRequestException('Erro no servidor');
   }
+}
+
 
   private async processText(message: any, phoneNumberReceptor: string, nameContact: string, phoneSender: string): Promise<any> {
     // Logar dados
